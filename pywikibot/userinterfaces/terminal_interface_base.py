@@ -528,6 +528,7 @@ class TerminalHandler(logging.Handler):
 
     def flush(self):
         """Flush the stream."""
+        self.UI.flush()
         self.stream.flush()
 
     def emit(self, record):

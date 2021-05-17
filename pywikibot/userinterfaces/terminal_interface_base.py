@@ -196,28 +196,28 @@ class UI(ABUIC):
         in cache. They will be printed with next unlocked output call or
         at termination time.
         """
-        print('>>> output', text)
+        print('>>> output:', text)
         self.cache_output(text, toStdout, targetStream)
         if not self.lock.locked():
             self.flush()
-        print('<<< output', text)
+        print('<<< output:', text)
 
     def flush(self):
         """Output cached text."""
-        print('>>> flush')
+        print('>>> flush:', self.cache.qsize())
         while not self.cache.empty():
             args, kwargs = self.cache.get_nowait()
             self.stream_output(*args, **kwargs)
-        print('<<< flush')
+        print('<<< flush:', self.cache.qsize())
 
     def cache_output(self, *args, **kwargs):
         """Put text to cache.
 
         *New in version 6.2*
         """
-        print('>>> cache_output', args)
+        print('>>> cache_output:', self.cache.qsize(), args)
         self.cache.put_nowait((args, kwargs))
-        print('<<< cache_output', args)
+        print('<<< cache_output:', self.cache.qsize(), args)
 
     def stream_output(self, text, toStdout=False, targetStream=None):
         """
@@ -229,7 +229,7 @@ class UI(ABUIC):
 
         *New in version 6.2*
         """
-        print('>>> stream_output', text)
+        print('>>> stream_output:', text)
         if config.transliterate:
             # Encode our unicode string in the encoding used by the user's
             # console, and decode it back to unicode. Then we can see which
@@ -281,7 +281,7 @@ class UI(ABUIC):
                 targetStream = self.stderr
 
         self._print(text, targetStream)
-        print('<<< stream_output', text)
+        print('<<< stream_output:', text)
 
     def _raw_input(self):
         # May be overridden by subclass

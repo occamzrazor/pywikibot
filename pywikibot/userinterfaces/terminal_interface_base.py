@@ -97,7 +97,7 @@ class UI(ABUIC):
             default_stream = self.stderr
 
         # default handler for display to terminal
-        default_handler = TerminalHandler(self, strm=default_stream)
+        default_handler = TerminalHandler(self, stream=default_stream)
         if config.verbose_output:
             default_handler.setLevel(VERBOSE)
         else:
@@ -105,22 +105,22 @@ class UI(ABUIC):
         # this handler ignores levels above INPUT
         default_handler.addFilter(MaxLevelFilter(INPUT))
         default_handler.setFormatter(
-            TerminalFormatter(fmt='%(message)s%(newline)s'))
+            logging.Formatter(fmt='%(message)s%(newline)s'))
         root_logger.addHandler(default_handler)
 
         # handler for level STDOUT
-        output_handler = TerminalHandler(self, strm=self.stdout)
+        output_handler = TerminalHandler(self, stream=self.stdout)
         output_handler.setLevel(STDOUT)
         output_handler.addFilter(MaxLevelFilter(STDOUT))
         output_handler.setFormatter(
-            TerminalFormatter(fmt='%(message)s%(newline)s'))
+            logging.Formatter(fmt='%(message)s%(newline)s'))
         root_logger.addHandler(output_handler)
 
         # handler for levels WARNING and higher
-        warning_handler = TerminalHandler(self, strm=self.stderr)
+        warning_handler = TerminalHandler(self, stream=self.stderr)
         warning_handler.setLevel(WARNING)
         warning_handler.setFormatter(
-            TerminalFormatter(fmt='%(levelname)s: %(message)s%(newline)s'))
+            logging.Formatter(fmt='%(levelname)s: %(message)s%(newline)s'))
         root_logger.addHandler(warning_handler)
 
         warnings_logger = logging.getLogger('py.warnings')
@@ -494,7 +494,7 @@ class UI(ABUIC):
         return list(self.argv)
 
 
-class TerminalHandler(logging.Handler):
+class TerminalHandler(logging.StreamHandler):
 
     """A handler class that writes logging records to a terminal.
 
@@ -509,27 +509,19 @@ class TerminalHandler(logging.Handler):
     # create a class-level lock that can be shared by all instances
     sharedlock = threading.RLock()
 
-    def __init__(self, UI, strm=None):
-        """Initialize the handler.
-
-        If strm is not specified, sys.stderr is used.
-
-        """
-        super().__init__()
+    def __init__(self, UI, stream=None):
+        """Initializer."""
+        super().__init__(stream=stream)
         # replace Handler's instance-specific lock with the shared class lock
         # to ensure that only one instance of this handler can write to
         # the console at a time
         self.lock = TerminalHandler.sharedlock
-        if strm is None:
-            strm = sys.stderr
-        self.stream = strm
-        self.formatter = None
         self.UI = UI
 
     def flush(self):
         """Flush the stream."""
+        super().flush()
         self.UI.flush()
-        self.stream.flush()
 
     def emit(self, record):
         """Emit the record formatted to the output and return it."""
@@ -542,12 +534,8 @@ class TerminalHandler(logging.Handler):
             record.__dict__.setdefault('newline', '\n')
 
         text = self.format(record)
+        self.flush()
         return self.UI.output(text, targetStream=self.stream)
-
-
-class TerminalFormatter(logging.Formatter):
-
-    """Terminal logging formatter."""
 
 
 class MaxLevelFilter(logging.Filter):

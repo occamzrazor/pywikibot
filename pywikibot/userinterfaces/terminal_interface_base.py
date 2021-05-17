@@ -22,7 +22,7 @@ from pywikibot.bot_choice import (
     StandardOption,
 )
 from pywikibot.logging import INFO, INPUT, STDOUT, VERBOSE, WARNING
-from pywikibot.tools import RLock
+from pywikibot.tools import deprecated_args, RLock
 from pywikibot.userinterfaces import transliteration
 from pywikibot.userinterfaces._interface_base import ABUIC
 
@@ -97,7 +97,7 @@ class UI(ABUIC):
             default_stream = self.stderr
 
         # default handler for display to terminal
-        default_handler = TerminalHandler(self, strm=default_stream)
+        default_handler = TerminalHandler(self, stream=default_stream)
         if config.verbose_output:
             default_handler.setLevel(VERBOSE)
         else:
@@ -109,7 +109,7 @@ class UI(ABUIC):
         root_logger.addHandler(default_handler)
 
         # handler for level STDOUT
-        output_handler = TerminalHandler(self, strm=self.stdout)
+        output_handler = TerminalHandler(self, stream=self.stdout)
         output_handler.setLevel(STDOUT)
         output_handler.addFilter(MaxLevelFilter(STDOUT))
         output_handler.setFormatter(
@@ -117,7 +117,7 @@ class UI(ABUIC):
         root_logger.addHandler(output_handler)
 
         # handler for levels WARNING and higher
-        warning_handler = TerminalHandler(self, strm=self.stderr)
+        warning_handler = TerminalHandler(self, stream=self.stderr)
         warning_handler.setLevel(WARNING)
         warning_handler.setFormatter(
             TerminalFormatter(fmt='%(levelname)s: %(message)s%(newline)s'))
@@ -196,22 +196,28 @@ class UI(ABUIC):
         in cache. They will be printed with next unlocked output call or
         at termination time.
         """
+        print('>>> output', text)
         self.cache_output(text, toStdout, targetStream)
         if not self.lock.locked():
             self.flush()
+        print('<<< output', text)
 
     def flush(self):
         """Output cached text."""
+        print('>>> flush')
         while not self.cache.empty():
             args, kwargs = self.cache.get_nowait()
             self.stream_output(*args, **kwargs)
+        print('<<< flush')
 
     def cache_output(self, *args, **kwargs):
         """Put text to cache.
 
         *New in version 6.2*
         """
+        print('>>> cache_output', args)
         self.cache.put_nowait((args, kwargs))
+        print('<<< cache_output', args)
 
     def stream_output(self, text, toStdout=False, targetStream=None):
         """
@@ -223,6 +229,7 @@ class UI(ABUIC):
 
         *New in version 6.2*
         """
+        print('>>> stream_output', text)
         if config.transliterate:
             # Encode our unicode string in the encoding used by the user's
             # console, and decode it back to unicode. Then we can see which
@@ -274,6 +281,7 @@ class UI(ABUIC):
                 targetStream = self.stderr
 
         self._print(text, targetStream)
+        print('<<< stream_output', text)
 
     def _raw_input(self):
         # May be overridden by subclass
@@ -494,41 +502,42 @@ class UI(ABUIC):
         return list(self.argv)
 
 
-class TerminalHandler(logging.Handler):
+class TerminalHandler(logging.StreamHandler):
 
     """A handler class that writes logging records to a terminal.
 
-    This class does not close the stream,
-    as sys.stdout or sys.stderr may be (and usually will be) used.
+    This class does not close the stream, as sys.stdout or sys.stderr
+    may be (and usually will be) used.
 
     Slightly modified version of the StreamHandler class that ships with
     logging module, plus code for colorization of output.
-
     """
 
     # create a class-level lock that can be shared by all instances
     sharedlock = threading.RLock()
 
-    def __init__(self, UI, strm=None):
+    @deprecated_args(strm='stream')
+    def __init__(self, UI, stream=None):
         """Initialize the handler.
 
-        If strm is not specified, sys.stderr is used.
-
+        If stream is not specified, sys.stderr is used.
         """
-        super().__init__()
-        # replace Handler's instance-specific lock with the shared class lock
-        # to ensure that only one instance of this handler can write to
-        # the console at a time
-        self.lock = TerminalHandler.sharedlock
-        if strm is None:
-            strm = sys.stderr
-        self.stream = strm
-        self.formatter = None
+        super().__init__(stream=stream)
         self.UI = UI
+
+    def createLock(self):
+        """Acquire a thread lock for serializing access to the underlying I/O.
+
+        Replace Handler's instance-specific lock with the shared
+        class lock to ensure that only one instance of this handler can
+        write to the console at a time.
+        """
+        self.lock = TerminalHandler.sharedlock
 
     def flush(self):
         """Flush the stream."""
-        self.stream.flush()
+        self.UI.flush()
+        super().flush()
 
     def emit(self, record):
         """Emit the record formatted to the output and return it."""
@@ -540,8 +549,8 @@ class TerminalHandler(logging.Handler):
 
             record.__dict__.setdefault('newline', '\n')
 
-        text = self.format(record)
-        return self.UI.output(text, targetStream=self.stream)
+        msg = self.format(record)
+        return self.UI.output(msg, targetStream=self.stream)
 
 
 class TerminalFormatter(logging.Formatter):

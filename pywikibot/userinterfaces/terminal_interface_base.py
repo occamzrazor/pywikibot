@@ -197,7 +197,7 @@ class UI(ABUIC):
         at termination time.
         """
         print('>>> output:', text)
-        self.cache_output(text, toStdout, targetStream)
+        self.cache_output(text, toStdout=toStdout, targetStream=targetStream)
         if not self.lock.locked():
             self.flush()
         print('<<< output:', text)

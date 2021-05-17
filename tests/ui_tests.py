@@ -154,43 +154,36 @@ class TestTerminalOutput(UITestCase):
 
     def test_output(self):
         pywikibot.output('output')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), '')
         self.assertEqual(newstderr.getvalue(), 'output\n')
 
     def test_stdout(self):
         pywikibot.stdout('output')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), 'output\n')
         self.assertEqual(newstderr.getvalue(), '')
 
     def test_warning(self):
         pywikibot.warning('warning')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), '')
         self.assertEqual(newstderr.getvalue(), 'WARNING: warning\n')
 
     def test_error(self):
         pywikibot.error('error')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), '')
         self.assertEqual(newstderr.getvalue(), 'ERROR: error\n')
 
     def test_log(self):
         pywikibot.log('log')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), '')
         self.assertEqual(newstderr.getvalue(), '')
 
     def test_critical(self):
         pywikibot.critical('critical')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), '')
         self.assertEqual(newstderr.getvalue(), 'CRITICAL: critical\n')
 
     def test_debug(self):
         pywikibot.debug('debug', 'test')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), '')
         self.assertEqual(newstderr.getvalue(), '')
 
@@ -203,7 +196,6 @@ class TestTerminalOutput(UITestCase):
             raise TestException('Testing Exception')
         except TestException:
             pywikibot.exception('exception')
-        ui.flush()
         self.assertEqual(newstdout.getvalue(), '')
         self.assertEqual(newstderr.getvalue(),
                          'ERROR: TestException: Testing Exception\n')

@@ -197,7 +197,7 @@ class UI(ABUIC):
         at termination time.
         """
         print('>>> output:', text)
-        self.cache_output(text, toStdout, targetStream)
+        self.cache_output(text, toStdout=toStdout, targetStream=targetStream)
         if not self.lock.locked():
             self.flush()
         print('<<< output:', text)
@@ -209,8 +209,9 @@ class UI(ABUIC):
             print('######### SIZE is >0 but QUEUE is EMPTY #####')
         while not self.cache.empty():
             args, kwargs = self.cache.get_nowait()
-            print('###', args)
+            print('##>', args)
             self.stream_output(*args, **kwargs)
+            print('##<')
         print('<<< flush:', self.cache.qsize())
 
     def cache_output(self, *args, **kwargs):
@@ -232,7 +233,7 @@ class UI(ABUIC):
 
         *New in version 6.2*
         """
-        print('>>> stream_output:', text)
+        print('>>> stream_output:', text, file=sys.stdout, flush=True)
         if config.transliterate:
             # Encode our unicode string in the encoding used by the user's
             # console, and decode it back to unicode. Then we can see which

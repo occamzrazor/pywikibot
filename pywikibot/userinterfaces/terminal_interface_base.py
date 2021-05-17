@@ -205,8 +205,11 @@ class UI(ABUIC):
     def flush(self):
         """Output cached text."""
         print('>>> flush:', self.cache.qsize())
+        if self.cache.qsize() and self.cache.empty():
+            print('######### SIZE is >0 but QUEUE is EMPTY #####')
         while not self.cache.empty():
             args, kwargs = self.cache.get_nowait()
+            print('###', args)
             self.stream_output(*args, **kwargs)
         print('<<< flush:', self.cache.qsize())
 
